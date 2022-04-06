@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import json
+from minio import Minio
 
 os.environ["FILE_NAME"] = r'covid.csv'
 os.environ["DATASET_ID"] = r'8fd2d3e0-352a-11ec-8bab-6194bb3a1754'
