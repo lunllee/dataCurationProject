@@ -8,7 +8,6 @@ from config.env_config import args
 
 env = 'development' if 'APP_ENV' not in os.environ else os.environ['APP_ENV']
 args = args[env]
-print(args['input1'])
 
 
 # home path 와 parameter 를 path 값으로 join
@@ -53,23 +52,25 @@ def algorithm_work(params) -> list:
 # MinIO에 업로드 하기 위한 option
 options_minio_data = {
     'url': 'http://' + args['output1']['baseUrl'] + '/api/v1/devops/development/environment/get',
-    'params': {
-        'id': args['output1']['storageId']
-    },
     'headers': {
         'accept': 'application/json',
         'Authorization': 'Bearer ' + args['output1']['accessToken']
+    },
+    'params': {
+        'id': args['output1']['storageId']
     }
 }
 
 
 # MinIO 연결
-def get_connection(options) -> dict:
+def minio_connection(options) -> dict:
     res = requests.get(options['url'],
                        headers=options['headers'],
                        params=options['params'])
-    if res.status_code != 200:
-        raise Exception('Cannot access API.')
+    if res.status_code == 401:
+        raise Exception('There is no valid authentication token')
+    elif res.status_code != 200:
+        raise Exception('Cannot access API')
     storage = json.loads(res.content.decode('ascii'))
     connection = {
         'endPoint': list(filter(lambda x: x['servicePort'] == 9000, storage['sandbox']['ingress']))[0]['host'],
@@ -86,34 +87,101 @@ def get_connection(options) -> dict:
 
 
 # MinIO file 업로드
-def uploadDataFile(minio_client, bucket_name, object_name, file_path):
+def upload_data_file(minio_client, bucket_name, object_name, file_path):
     minio_client.fput_object(bucket_name, object_name, file_path)
     print('The file uploads successfully.')
 
 
+# sodas+ 호출 option
+def sodas_option(url, access_token, params) -> dict:
+    return {
+        'url': url,
+        'headers': {
+            'accept': 'application/json',
+            'Authorization': 'Bearer ' + access_token
+        },
+        'params': params
+    }
+
+
+# distribution 파일명 받기
+def found_distribution_file_name(options) -> str:
+    res = requests.get(options['url'],
+                       headers=options['headers'],
+                       params=options['params'])
+    if res.status_code == 400:
+        raise Exception('The input value is invalid')
+    elif res.status_code == 401:
+        raise Exception('There is no valid authentication token')
+    elif res.status_code != 200:
+        raise Exception('Cannot access API')
+    result_list = json.loads(res.content.decode('ascii'))
+
+    file_name = list(
+        filter(lambda x: x['id'] == args['input1']['distribution_id'], result_list['results'])
+    )[0]['fileName']
+    return file_name
+
+
+# distribution 파일을 파일 명을 포함한 path 를 받아서 저장
+def download_data_file(filename_path, options):
+    with open(filename_path, "wb") as file:
+        res = requests.get(options['url'],
+                           headers=options['headers'],
+                           params=options['params'])
+        file.write(res.content)
+        print('The file downloads successfully.')
+
+
 def main():
-    file_path = data_path(args['input1']['dataset_id'], args['input1']['distribution_id'])
-    filename_path = os.path.join(file_path, args['input1']['file_name'])
-    print(filename_path)
+    try:
+        list_option = sodas_option(
+            'http://' + args['input1']['baseUrl'] + '/api/v1/data-management/distribution/list',
+            args['input1']['accessToken'],
+            {
+                'datasetId': args['input1']['dataset_id'],
+                'offset': 0,
+                'limit': 10,
+                'sort': 'issued',
+                'ordered': 'ASC'
+            }
+        )
+        distribution_file_name = found_distribution_file_name(list_option)
+        args['input1']['file_name'] = distribution_file_name
 
-    if os.path.isfile(filename_path):
-        read_df = read_file(filename_path)
-        print(read_df.columns.tolist())
+        file_path = data_path(args['input1']['dataset_id'], args['input1']['distribution_id'])
+        filename_path = os.path.join(file_path, args['input1']['file_name'])
+        print(filename_path)
 
-        working_set = algorithm_work(args['input1']['params'])
+        download_option = sodas_option(
+            'http://' + args['input1']['baseUrl'] + '/api/v1/data-management/distribution/download',
+            args['input1']['accessToken'],
+            {'id': args['input1']['distribution_id']}
+        )
+        download_data_file(filename_path, download_option)
 
-        convert_df = read_df[working_set]
-        print(read_df[working_set])
-        output_file(convert_df, file_path)
+        if os.path.isfile(filename_path):
+            read_df = read_file(filename_path)
+            print(read_df.columns.tolist())
 
-        connection_info = get_connection(options_minio_data)
-        minio_client = Minio(endpoint=connection_info['endPoint'] + ':' + str(connection_info['port']),
-                             secure=connection_info['useSSL'],
-                             access_key=connection_info['accessKey'],
-                             secret_key=connection_info['secretKey'])
-        uploadDataFile(minio_client, args['output1']['bucketName'], args['output1']['objectName'], filename_path)
-    else:
-        print("file not found")
+            working_set = algorithm_work(args['input1']['params'])
+
+            convert_df = read_df[working_set]
+            print(read_df[working_set])
+            output_file(convert_df, file_path)
+
+            connection_info = minio_connection(options_minio_data)
+            minio_client = Minio(endpoint=connection_info['endPoint'] + ':' + str(connection_info['port']),
+                                 secure=connection_info['useSSL'],
+                                 access_key=connection_info['accessKey'],
+                                 secret_key=connection_info['secretKey'])
+
+            upload_data_file(minio_client, args['output1']['bucketName'], args['output1']['objectName'], filename_path)
+        else:
+            print("file not found")
+
+    except InvalidResponseError as err:
+        print(err)
 
 
 if __name__ == '__main__':
