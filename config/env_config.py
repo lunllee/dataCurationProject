@@ -1,4 +1,5 @@
 import os
+import json
 
 args = {
     "development": {
@@ -65,5 +66,9 @@ args = {
             "bucketName": "test",
             "objectName": "c_covid.csv"
         }
+    },
+    'production': {
+        'input1': json.loads(os.environ['INPUT1']) if 'INPUT1' in os.environ else '',
+        'output1': json.loads(os.environ['OUTPUT1']) if 'INPUT1' in os.environ else ''
     }
 }
