@@ -32,6 +32,7 @@ def read_file(path) -> pd.core.frame.DataFrame:
 # pandas dataframe 과 filePath 를 받아서 파일명 에 'c_'를 붙인 뒤 저장
 def output_file(dataframe, file_path):
     output_file_name = r'c_' + args['input1']['fileName']
+    args['output1']['objectName'] = output_file_name
     output_file_path = os.path.join(file_path, output_file_name)
     dataframe.to_csv(output_file_path, index=False)
 
