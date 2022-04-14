@@ -31,7 +31,7 @@ def read_file(path) -> pd.core.frame.DataFrame:
 
 # pandas dataframe 과 filePath 를 받아서 파일명 에 'c_'를 붙인 뒤 저장
 def output_file(dataframe, file_path):
-    output_file_name = r'c_' + args['input1']['file_name']
+    output_file_name = r'c_' + args['input1']['fileName']
     output_file_path = os.path.join(file_path, output_file_name)
     dataframe.to_csv(output_file_path, index=False)
 
@@ -118,7 +118,7 @@ def found_distribution_file_name(options) -> str:
     result_list = json.loads(res.content.decode('ascii'))
 
     file_name = list(
-        filter(lambda x: x['id'] == args['input1']['distribution_id'], result_list['results'])
+        filter(lambda x: x['id'] == args['input1']['distributionId'], result_list['results'])
     )[0]['fileName']
     return file_name
 
@@ -139,7 +139,7 @@ def main():
             'http://' + args['input1']['baseUrl'] + '/api/v1/data-management/distribution/list',
             args['input1']['accessToken'],
             {
-                'datasetId': args['input1']['dataset_id'],
+                'datasetId': args['input1']['datasetId'],
                 'offset': 0,
                 'limit': 10,
                 'sort': 'issued',
@@ -147,16 +147,16 @@ def main():
             }
         )
         distribution_file_name = found_distribution_file_name(list_option)
-        args['input1']['file_name'] = distribution_file_name
+        args['input1']['fileName'] = distribution_file_name
 
-        file_path = data_path(args['input1']['dataset_id'], args['input1']['distribution_id'])
-        filename_path = os.path.join(file_path, args['input1']['file_name'])
+        file_path = data_path(args['input1']['datasetId'], args['input1']['distributionId'])
+        filename_path = os.path.join(file_path, args['input1']['fileName'])
         print(filename_path)
 
         download_option = sodas_option(
             'http://' + args['input1']['baseUrl'] + '/api/v1/data-management/distribution/download',
             args['input1']['accessToken'],
-            {'id': args['input1']['distribution_id']}
+            {'id': args['input1']['distributionId']}
         )
         download_data_file(filename_path, download_option)
 
