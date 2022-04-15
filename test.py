@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import json
+import time
 from minio import Minio
 from minio.error import InvalidResponseError
 import requests
@@ -8,6 +9,17 @@ from config.env_config import args
 
 env = 'development' if 'APP_ENV' not in os.environ else os.environ['APP_ENV']
 args = args[env]
+
+
+# 함수 시간 check (decorate 함수)
+def make_time_checker(func):
+    def new_func(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        print('함수 실행시간: ', end_time - start_time)
+        return result
+    return new_func
 
 
 # home path 와 parameter 를 path 값으로 join
@@ -88,6 +100,7 @@ def minio_connection(options) -> dict:
 
 
 # MinIO file 업로드
+@make_time_checker
 def upload_data_file(minio_client, bucket_name, object_name, file_path):
     minio_client.fput_object(bucket_name, object_name, file_path)
     print('The file uploads successfully.')
@@ -106,6 +119,7 @@ def sodas_option(url, access_token, params) -> dict:
 
 
 # distribution 파일명 받기
+@make_time_checker
 def found_distribution_file_name(options) -> str:
     res = requests.get(options['url'],
                        headers=options['headers'],
@@ -125,6 +139,7 @@ def found_distribution_file_name(options) -> str:
 
 
 # distribution 파일을 파일 명을 포함한 path 를 받아서 저장
+@make_time_checker
 def download_data_file(filename_path, options):
     with open(filename_path, "wb") as file:
         res = requests.get(options['url'],
@@ -134,6 +149,7 @@ def download_data_file(filename_path, options):
         print('The file downloads successfully.')
 
 
+@make_time_checker
 def main():
     try:
         list_option = sodas_option(

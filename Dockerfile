@@ -7,4 +7,6 @@ COPY . .
 
 RUN pip install -r ./requirement.txt
 
+ENV APP_ENV production
+
 CMD python3 ./test.py
