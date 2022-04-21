@@ -11,7 +11,7 @@ env = 'development' if 'APP_ENV' not in os.environ else os.environ['APP_ENV']
 args = args[env]
 
 
-# 함수 시간 check (decorate 함수)
+# 함수 시간 check (decorate 함수, 동작 시간 확인 시 사용)
 def make_time_checker(func):
     def new_func(*args, **kwargs):
         start_time = time.perf_counter()
