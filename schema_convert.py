@@ -43,7 +43,7 @@ def read_file(path) -> pd.core.frame.DataFrame:
 
 # pandas dataframe 과 filePath 를 받아서 파일명 에 'c_'를 붙인 뒤 저장
 def output_file(dataframe, file_path):
-    output_file_name = r'c_' + args['input1']['fileName']
+    output_file_name = '{0}{1}'.format('c_', args['input1']['fileName'])
     args['output1']['objectName'] = output_file_name
     output_file_path = os.path.join(file_path, output_file_name)
     dataframe.to_csv(output_file_path, index=False)
@@ -64,7 +64,7 @@ def algorithm_work(params) -> list:
 
 # MinIO에 업로드 하기 위한 option
 options_minio_data = {
-    'url': 'http://' + args['output1']['baseUrl'] + '/api/v1/devops/development/environment/get',
+    'url': '{0}{1}{2}'.format('http://', args['output1']['baseUrl'], '/api/v1/devops/development/environment/get'),
     'headers': {
         'accept': 'application/json',
         'Authorization': 'Bearer ' + args['output1']['accessToken']
@@ -153,7 +153,7 @@ def download_data_file(filename_path, options):
 def main():
     try:
         list_option = sodas_option(
-            'http://' + args['input1']['baseUrl'] + '/api/v1/data-management/distribution/list',
+            '{0}{1}{2}'.format('http://', args['input1']['baseUrl'], '/api/v1/data-management/distribution/list'),
             args['input1']['accessToken'],
             {
                 'datasetId': args['input1']['datasetId'],
@@ -171,7 +171,7 @@ def main():
         print(filename_path)
 
         download_option = sodas_option(
-            'http://' + args['input1']['baseUrl'] + '/api/v1/data-management/distribution/download',
+            '{0}{1}{2}'.format('http://', args['input1']['baseUrl'], '/api/v1/data-management/distribution/download'),
             args['input1']['accessToken'],
             {'id': args['input1']['distributionId']}
         )
